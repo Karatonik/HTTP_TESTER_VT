@@ -64,7 +64,7 @@ public class SampleObjectController {
     @GetMapping("/elements/page/{id}")
     public ResponseEntity<?> getSampleObjectElements(@PathVariable Long id, Pageable pageable) {
         Page<Element> page = sampleObjectService.getSampleObjectElements(id, pageable);
-        if (page.hasContent()) {
+        if (page != null && page.hasContent()) {
             List<ElementDto> elementDTOs = page.getContent().stream()
                     .map(ElementDto::new)
                     .toList();

@@ -25,10 +25,12 @@ public class ElementDto {
         this.sampleObjectId = sampleObjectId;
     }
     public ElementDto(Element element){
+        if(element.getSampleObject() != null){
         this.elementId = element.getElementId();
         this.description = element.getDescription();
         this.name = element.getName();
         this.dataAndTimeOfCreation = element.getDataAndTimeOfCreation();
         this.sampleObjectId = element.getSampleObject().getObjectId();
+        }
     }
 }

@@ -39,8 +39,13 @@ public class SampleObjectServiceImp implements SampleObjectService {
     public boolean deleteSampleObject(long id) {
         Optional<SampleObject> optionalSampleObject = sampleObjectRepository.findById(id);
         if (optionalSampleObject.isPresent()) {
-            sampleObjectRepository.delete(optionalSampleObject.get());
-            return true;
+            SampleObject sampleObject = optionalSampleObject.get();
+            elementRepository.deleteAll(sampleObject.getElements());
+            sampleObject = sampleObjectRepository.getReferenceById(id);
+            if (sampleObject.getElements().isEmpty()) {
+                sampleObjectRepository.delete(optionalSampleObject.get());
+                return true;
+            }
         }
         return false;
     }
@@ -67,7 +72,7 @@ public class SampleObjectServiceImp implements SampleObjectService {
         sampleObject.setElements(new ArrayList<>());
         sampleObject = sampleObjectRepository.save(sampleObject);
         SampleObject finalSampleObject = sampleObject;
-        if (sampleObject.getElements() != null) {
+        if (sampleObject.getElements() != null && elements != null) {
             elements = elements.stream().peek(element -> element.setSampleObject(finalSampleObject)).toList();
             elementRepository.saveAll(elements);
         }

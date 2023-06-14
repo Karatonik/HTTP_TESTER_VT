@@ -1,6 +1,7 @@
 package pl.kalksztejn.mateusz.httpmethodstester.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,11 @@ public class ElementController {
     }
     @GetMapping()
     public ResponseEntity<?> getElements(Pageable pageable) {
-            return ResponseEntity.ok(elementService.getElements(pageable).stream().map(ElementDto::new).toList());
+        Page<Element> page = elementService.getElements(pageable);
+        if(page !=null && page.hasContent()){
+            return ResponseEntity.ok(page.stream().map(ElementDto::new).toList());
+        }
+        return ResponseEntity.notFound().build();
     }
     @GetMapping("/{id}")
     public ResponseEntity<?> getElement(@PathVariable Long id) {
