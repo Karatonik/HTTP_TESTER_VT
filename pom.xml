@@ -125,6 +125,9 @@
                 <configuration>
                     <source>20</source>
                     <target>20</target>
+                    <compilerArgs>
+                        --enable-preview
+                    </compilerArgs>
                 </configuration>
             </plugin>
         </plugins>
