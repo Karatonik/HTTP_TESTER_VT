@@ -3,6 +3,7 @@ package pl.kalksztejn.mateusz.httpmethodstester.service.Implementation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import pl.kalksztejn.mateusz.httpmethodstester.model.Element;
 import pl.kalksztejn.mateusz.httpmethodstester.model.SampleObject;
 import pl.kalksztejn.mateusz.httpmethodstester.repository.ElementRepository;
@@ -36,6 +37,7 @@ public class SampleObjectServiceImp implements SampleObjectService {
     }
 
     @Override
+    @Transactional
     public boolean deleteSampleObject(long id) {
         Optional<SampleObject> optionalSampleObject = sampleObjectRepository.findById(id);
         if (optionalSampleObject.isPresent()) {
@@ -81,6 +83,7 @@ public class SampleObjectServiceImp implements SampleObjectService {
     }
 
     @Override
+    @Transactional
     public SampleObject updateSampleObject(SampleObject sampleObject) {
         Optional<SampleObject> optionalSampleObject = sampleObjectRepository.findById(sampleObject.getObjectId());
         if (optionalSampleObject.isPresent()) {

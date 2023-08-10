@@ -58,7 +58,7 @@ public class SampleObjectController {
         if (!elements.isEmpty()) {
             return ResponseEntity.ok(elements.stream().map(ElementDto::new).toList());
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(null);
     }
 
     @GetMapping("/elements/page/{id}")

@@ -17,7 +17,7 @@ import java.util.List;
 @Entity(name = "sample_object")
 public class SampleObject {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long objectId;
 

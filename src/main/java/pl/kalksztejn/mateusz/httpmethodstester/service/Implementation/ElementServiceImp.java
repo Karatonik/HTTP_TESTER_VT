@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import pl.kalksztejn.mateusz.httpmethodstester.model.Element;
 import pl.kalksztejn.mateusz.httpmethodstester.model.SampleObject;
 import pl.kalksztejn.mateusz.httpmethodstester.repository.ElementRepository;
@@ -33,6 +34,7 @@ public class ElementServiceImp implements ElementService {
     }
 
     @Override
+    @Transactional
     public boolean deleteElement(long id) {
         Optional<Element> optionalElement = elementRepository.findById(id);
         if (optionalElement.isPresent()) {
@@ -49,6 +51,7 @@ public class ElementServiceImp implements ElementService {
     }
 
     @Override
+    @Transactional
     public Element updateElement(Element element) {
         Optional<Element> optionalElement = elementRepository.findById(element.getElementId());
         if (optionalElement.isPresent()) {

@@ -10,58 +10,41 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.text.SimpleDateFormat;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Aspect
 @Component
 public class PerformanceMeasurementAspect {
-    private ExecutorService executorService;
-
-    private static final String FILE_NAME = "performance_results.txt";
+    private static final String FILE_EXTENSION = ".csv";
+    private static final String CSV_HEADER = "time;mem;cpu";
 
     private SimpleDateFormat dateFormat;
-    private PrintWriter writer;
-
-
     private static final Logger logger = LoggerFactory.getLogger(PerformanceMeasurementAspect.class);
-    private final MemoryMXBean memoryMXBean;
-    private final OperatingSystemMXBean osBean;
-    private long totalDuration;
+    private MemoryMXBean memoryMXBean;
+    private OperatingSystemMXBean osBean;
+    private final Map<String, PrintWriter> writers = new ConcurrentHashMap<>();
 
-    private long totalMemoryUsed;
-    private int numCalls;
-
-    private long numError;
 
     @PostConstruct
-    public void init() throws IOException {
+    public void init() {
         dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        writer = new PrintWriter(new FileWriter(FILE_NAME, true));
-        // Inicjalizacja executorService z odpowiednią ilością wątków
-        executorService = Executors.newFixedThreadPool(1);
+        memoryMXBean = ManagementFactory.getMemoryMXBean();
+        osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
     }
 
     @PreDestroy
     public void cleanup() {
-        // Zamknięcie writer i executorService
-        writer.close();
-        executorService.shutdown();
-    }
-
-    public PerformanceMeasurementAspect() {
-        this.memoryMXBean = ManagementFactory.getMemoryMXBean();
-        this.osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        this.totalDuration = 0;
-        this.totalMemoryUsed = 0;
-        this.numCalls = 0;
-        this.numError = 0;
+        writers.values().forEach(PrintWriter::close);
     }
 
     @Around("execution(* pl.kalksztejn.mateusz.httpmethodstester.controller.*.*(..))")
@@ -69,6 +52,7 @@ public class PerformanceMeasurementAspect {
         try {
             long startTime = System.nanoTime();
             double cpuUsageBefore = osBean.getProcessCpuLoad() * 100;
+            long memoryBefore = memoryMXBean.getHeapMemoryUsage().getUsed() / 1000000;
 
             Object result = joinPoint.proceed();
 
@@ -76,21 +60,51 @@ public class PerformanceMeasurementAspect {
             double cpuUsageAfter = osBean.getProcessCpuLoad() * 100;
             long duration = endTime - startTime;
             long memoryAfter = memoryMXBean.getHeapMemoryUsage().getUsed() / 1000000;
-            double cpuUsageAv = cpuUsageAfter-cpuUsageBefore;
+            double cpuUsageAv = cpuUsageAfter - cpuUsageBefore;
 
-            totalDuration += duration;
-            totalMemoryUsed += memoryAfter;
-            numCalls++;
+            String methodName = joinPoint.getSignature().getName();
+            String logMessage = String.format("%d;%d;%.2f",
+                    duration, memoryAfter - memoryBefore, cpuUsageAv);
 
-            String logMessage = String.format("%s/%d/%d/%.2f",
-                    joinPoint.getSignature().getName(), duration, memoryAfter, cpuUsageAv);
+            PrintWriter writer = getOrCreateWriter(methodName);
             writer.println(logMessage);
             writer.flush();
 
             return result;
         } catch (OutOfMemoryError e) {
-            numError++;
+            logger.error("Out of memory error occurred", e);
         }
         return null;
+    }
+
+    private synchronized PrintWriter getOrCreateWriter(String methodName) {
+        return writers.computeIfAbsent(methodName, key -> {
+            String directory = "result";
+            File directoryFile = new File(directory);
+            if (!directoryFile.exists()) {
+                directoryFile.mkdirs();
+            }
+            String fileName = directory + File.separator + key + FILE_EXTENSION;
+            try {
+                PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
+                if (writer.checkError()) {
+                    throw new IOException("Error creating writer for file: " + fileName);
+                }
+                if (writer.checkError()) {
+                    throw new IOException("Error writing to file: " + fileName);
+                }
+                if (writer.checkError()) {
+                    throw new IOException("Error flushing writer for file: " + fileName);
+                }
+                if (writer.checkError()) {
+                    throw new IOException("Error writing CSV header to file: " + fileName);
+                }
+                writer.println(CSV_HEADER);
+                return writer;
+            } catch (IOException e) {
+                logger.error("Error creating writer for file: " + fileName, e);
+                throw new RuntimeException("Error creating writer for file: " + fileName, e);
+            }
+        });
     }
 }
